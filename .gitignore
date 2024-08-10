@@ -4,7 +4,7 @@
 
 # Vagrant
 .vagrant/
-
+lib64
 # Mac/OSX
 .DS_Store
 
