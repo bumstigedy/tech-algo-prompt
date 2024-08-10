@@ -56,7 +56,76 @@ class ATRRSIStrategy(Strategy):
         # Sell condition
         elif self.position and (self.rsi[-1] > self.sell_threshold or self.atr_short[-1] > self.atr_long[-1]):
             self.position.close()
+#########################################################################################################################################################
+def risk_ind(data):
+    """ a function to turn our HODL data into an indicator"""
+    return data
 
+####################################### Support & Resistance With Peak HODL Waves #######################################################################
+class SupportAndResWithPeakHodl(Strategy):
+    # Class variables for short-term (ST) and long-term (LT) periods
+    ST = 10
+    LT = 100
+
+    def init(self):
+        # Calculate highest highs and lowest lows over ST and LT periods
+        self.highest_high_ST = self.I(talib.MAX, self.data.High, self.ST)
+        self.highest_high_LT = self.I(talib.MAX, self.data.High, self.LT)
+        self.lowest_low_ST = self.I(talib.MIN, self.data.Low, self.ST)
+        # turn the HODL peak into a risk indicator
+        self.riskOn=self.I(risk_ind, self.data["Peak"])
+    
+    def next(self):
+        # Buy condition: Adj Close > highest high over ST AND LT periods
+        if self.data["Adj Close"][-1] > self.highest_high_ST[-2] and self.data["Adj Close"][-1] > self.highest_high_LT[-2] and self.riskOn[-1] != 1:
+            self.buy()
+
+        # Sell condition: Adj Close < lowest low over ST OR peak detected
+        if self.data["Adj Close"][-1] < self.lowest_low_ST[-2] or self.riskOn[-1] == 1:
+            self.position.close()
+####################################### Support & Resistance With Peak HODL Waves Optimized################################################################
+class SupportAndResWithPeakHodl_opt(Strategy):
+    # Class variables for short-term (ST) and long-term (LT) periods
+    ST = 2
+    LT = 150
+
+    def init(self):
+        # Calculate highest highs and lowest lows over ST and LT periods
+        self.highest_high_ST = self.I(talib.MAX, self.data.High, self.ST)
+        self.highest_high_LT = self.I(talib.MAX, self.data.High, self.LT)
+        self.lowest_low_ST = self.I(talib.MIN, self.data.Low, self.ST)
+        # turn the HODL peak into a risk indicator
+        self.riskOn=self.I(risk_ind, self.data["Peak"])
+    
+    def next(self):
+        # Buy condition: Adj Close > highest high over ST AND LT periods
+        if self.data["Adj Close"][-1] > self.highest_high_ST[-2] and self.data["Adj Close"][-1] > self.highest_high_LT[-2] and self.riskOn[-1] != 1:
+            self.buy()
+
+        # Sell condition: Adj Close < lowest low over ST OR peak detected
+        if self.data["Adj Close"][-1] < self.lowest_low_ST[-2] or self.riskOn[-1] == 1:
+            self.position.close()
+
+####################################### Support & Resistance With Peak HODL Waves #######################################################################
+class SupportAndRes(Strategy):
+    # Class variables for short-term (ST) and long-term (LT) periods
+    ST = 10
+    LT = 100
+
+    def init(self):
+        # Calculate highest highs and lowest lows over ST and LT periods
+        self.highest_high_ST = self.I(talib.MAX, self.data.High, self.ST)
+        self.highest_high_LT = self.I(talib.MAX, self.data.High, self.LT)
+        self.lowest_low_ST = self.I(talib.MIN, self.data.Low, self.ST)
+       
+    def next(self):
+        # Buy condition: Adj Close > highest high over ST AND LT periods
+        if self.data["Adj Close"][-1] > self.highest_high_ST[-2] and self.data["Adj Close"][-1] > self.highest_high_LT[-2] :
+            self.buy()
+
+        # Sell condition: Adj Close < lowest low over ST OR peak detected
+        if self.data["Adj Close"][-1] < self.lowest_low_ST[-2]:
+            self.position.close()
 ############## test strategies ##########################################################################################################################
 if __name__ == "__main__":
     df=pd.read_csv(r'BTC-USD.csv', index_col='Date',parse_dates=True)
@@ -73,4 +142,24 @@ if __name__ == "__main__":
     stats = bt.run()
     print(stats)
     bt.plot(filename='test_plot.html')
-
+    #
+    df=pd.read_csv(r'BTC-USD.csv', index_col='Date',parse_dates=True)
+    df=df.dropna()    
+    df_hodl=pd.read_csv(r'HODL.txt', index_col='Date',parse_dates=True)
+    df=df.merge(df_hodl, how="left",left_index=True,right_index=True)
+    df.Peak=df.Peak.fillna(0)
+    print("----------S&R with HODL Peak----------------")
+    bt =Backtest(df, SupportAndResWithPeakHodl, cash=100_000)
+    stats = bt.run()
+    print(stats)
+    bt.plot(filename='test_plot.html')
+    print("----------S&R ----------------")
+    bt =Backtest(df, SupportAndRes, cash=100_000)
+    stats = bt.run()
+    print(stats)
+    bt.plot(filename='test_plot.html')
+    print("----------S&R with HODL Peak Optimized---------------")
+    bt =Backtest(df, SupportAndResWithPeakHodl_opt, cash=100_000)
+    stats = bt.run()
+    print(stats)
+    bt.plot(filename='test_plot.html')
